@@ -1,7 +1,9 @@
 ﻿using System;
 using System.IO;
+using IMDBDataService.CustomTypes;
 using IMDBDataService.Objects;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 
 namespace IMDBDataService
@@ -26,12 +28,13 @@ namespace IMDBDataService
         public DbSet<Comments> Comments { get; set; }
         public DbSet<Users> Users { get; set; }
 
-        public string connectionString = "host=localhost;database=imdb;user id=postgres;password = fnb78n87j;";
+        public string connectionString = "host=localhost;database=imdb_local;user id=postgres;password = secret;";
 
 
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
+            NpgsqlConnection.GlobalTypeMapper.MapEnum<BookmarkType>("bookmark_enum");
             optionsBuilder.UseNpgsql(connectionString);
         }
 
@@ -294,6 +297,7 @@ namespace IMDBDataService
 
                 //Sets properties
                 entity.Property(x => x.user_id).HasColumnName("user_id");
+                entity.Property(x => x.bookmark_type).HasColumnName("bookmark_type");
                 entity.Property(x => x.type_id).HasColumnName("type_id");
 
                 //Sets Foreign Keys
@@ -335,6 +339,25 @@ namespace IMDBDataService
                 //Sets Foreign Keys
                 entity.HasOne(x => x.User).WithMany(d => d.UserRating).HasForeignKey(x => x.user_id);
                 entity.HasOne(x => x.Title).WithMany(d => d.UserRating).HasForeignKey(x => x.title_id);
+            });
+
+            //SearchHistory
+            modelBuilder.Entity<SearchHistory>(entity =>
+            {
+                //Points To Database Table
+                entity.ToTable("searchhistory");
+
+                //Sets Primary Key -> Composite
+                entity.HasKey(x => new { x.UserId, x.Ordering});
+
+                //Sets properties
+                entity.Property(x => x.UserId).HasColumnName("user_id");
+                entity.Property(x => x.Ordering).HasColumnName("ordering");
+                entity.Property(x => x.SearchString).HasColumnName("query_string");
+                entity.Property(x => x.SearchTime).HasColumnName("search_time");
+
+                //Sets Foreign Keys
+                entity.HasOne(x => x.User).WithMany(d => d.SearchHistories).HasForeignKey(x => x.UserId);
             });
 
             //Comments

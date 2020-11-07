@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,7 +8,7 @@ namespace IMDBDataService.Repositories
 {
     public class GenericRepository <T> : IGenericRepository<T> where T : class
     {
-        private readonly ImdbContext context;
+        public readonly ImdbContext context;
 
         public GenericRepository(ImdbContext context)
         {
