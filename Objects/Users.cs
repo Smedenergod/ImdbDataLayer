@@ -15,11 +15,12 @@ namespace IMDBDataService.Objects
         public DateTime last_access { get; set; }
         public string email { get; set; }
         public string user_pass { get; set; }
-        public string salt { get; set; }
+        public byte[] salt { get; set; }
 
         public virtual ICollection<UserRating> UserRating { get; set; }
         public virtual  ICollection<Bookmarks> Bookmarks { get; set; }
         public virtual  ICollection<Comments> Comments { get; set; }
+        public virtual ICollection<SearchHistory> SearchHistories{ get; set; }
         public virtual ICollection<SpecialRoles> SpecialRoles { get; set; }
     }
 }

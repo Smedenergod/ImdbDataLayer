@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using IMDBDataService.CustomTypes;
 
 namespace IMDBDataService.Objects
 {
@@ -8,6 +9,7 @@ namespace IMDBDataService.Objects
     {
         public int user_id { get; set; }
         //public enum bookmark_type;
+        public BookmarkType bookmark_type { get; set; }
         public string type_id { get; set; }
 
         public Users User { get; set; }
