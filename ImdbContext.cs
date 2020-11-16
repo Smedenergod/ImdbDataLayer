@@ -1,10 +1,7 @@
-﻿using System;
-using System.IO;
-using IMDBDataService.CustomTypes;
-using IMDBDataService.Objects;
+﻿using IMDBDataService.CustomTypes;
+using IMDBDataService.DMO;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-
 
 namespace IMDBDataService
 {
@@ -27,10 +24,13 @@ namespace IMDBDataService
         public DbSet<UserRating> UserRatings { get; set; }
         public DbSet<Comments> Comments { get; set; }
         public DbSet<Users> Users { get; set; }
+        public DbSet<FlaggedComment> FlaggedComments { get; set; }
+        public DbSet<NameRating> NameRatings { get; set; }
 
-        public string connectionString = "host=localhost;database=imdb_local;user id=postgres;password = secret;";
+        //Don't change this
+        //public string connectionString = "host=imdb-do-user-673066-0.b.db.ondigitalocean.com;port = 25060;database = defaultdb;username = doadmin;password = jvciw0phpg56ch5q;sslmode = Prefer;Trust Server Certificate=true;";
 
-
+        private readonly string connectionString = "host=rawdata.ruc.dk;port=5432;database=raw7;username=raw7;password=O-y.A+a(;";
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -47,18 +47,18 @@ namespace IMDBDataService
                 entity.ToTable("titles");
 
                 //Sets Primary Key
-                entity.HasKey(x => x.title_id).HasName("title_id");
+                entity.HasKey(x => x.TitleId).HasName("title_id");
 
                 //Sets properties
-                entity.Property(x => x.title_id).HasColumnName("title_id");
-                entity.Property(x => x.primary_title).HasColumnName("primary_title");
-                entity.Property(x => x.is_adult).HasColumnName("is_adult");
-                entity.Property(x => x.original_title).HasColumnName("original_title");
-                entity.Property(x => x.poster).HasColumnName("poster");
-                entity.Property(x => x.start_year).HasColumnName("start_year").ToString();
-                entity.Property(x => x.year_end).HasColumnName("end_year").ToString();
-                entity.Property(x => x.runtime_mins).HasColumnName("runtime_mins");
-                entity.Property(x => x.title_type).HasColumnName("title_type");
+                entity.Property(x => x.TitleId).HasColumnName("title_id");
+                entity.Property(x => x.PrimaryTitle).HasColumnName("primary_title");
+                entity.Property(x => x.IsAdult).HasColumnName("is_adult");
+                entity.Property(x => x.OriginalTitle).HasColumnName("original_title");
+                entity.Property(x => x.Poster).HasColumnName("poster");
+                entity.Property(x => x.StartYear).HasColumnName("start_year").ToString();
+                entity.Property(x => x.EndYear).HasColumnName("end_year").ToString();
+                entity.Property(x => x.RunetimeMins).HasColumnName("runtime_mins");
+                entity.Property(x => x.TitleType).HasColumnName("title_type");
             });
 
             //TitleInfo
@@ -68,16 +68,16 @@ namespace IMDBDataService
                 entity.ToTable("titleinfo");
 
                 //Sets Primary Key
-                entity.HasKey(x => x.title_id).HasName("title_id");
+                entity.HasKey(x => x.TitleId).HasName("title_id");
 
                 //Sets properties
-                entity.Property(x => x.title_id).HasColumnName("title_id");
-                entity.Property(x => x.awards).HasColumnName("awards");
-                entity.Property(x => x.plot).HasColumnName("plot");
+                entity.Property(x => x.TitleId).HasColumnName("title_id");
+                entity.Property(x => x.Awards).HasColumnName("awards");
+                entity.Property(x => x.Plot).HasColumnName("plot");
 
                 //Sets Foreign Keys
-                entity.HasOne(x => x.titles).WithMany(d => d.TitleInfo)
-                    .HasForeignKey(x => x.title_id);
+                entity.HasOne(x => x.Titles).WithOne(d => d.TitleInfo)
+                    .HasForeignKey<TitleInfo>(x => x.TitleId);
             });
 
 
@@ -85,23 +85,23 @@ namespace IMDBDataService
             modelBuilder.Entity<TitleAlias>(entity =>
             {
                 //Points To Database Table
-                entity.ToTable("titlesalias");
+                entity.ToTable("titlealias");
 
                 //Sets Primary Key -> Composite
-                entity.HasKey(x => new { x.title_id, x.ordering });
+                entity.HasKey(x => new { title_id = x.TitleId, ordering = x.Ordering });
 
                 //Sets properties
-                entity.Property(x => x.title_id).HasColumnName("title_id");
-                entity.Property(x => x.ordering).HasColumnName("ordering");
-                entity.Property(x => x.title).HasColumnName("title");
-                entity.Property(x => x.region).HasColumnName("region");
-                entity.Property(x => x.language).HasColumnName("language");
-                entity.Property(x => x.attributes).HasColumnName("attributes");
-                entity.Property(x => x.is_original_title).HasColumnName("is_original_title");
+                entity.Property(x => x.TitleId).HasColumnName("title_id");
+                entity.Property(x => x.Ordering).HasColumnName("ordering");
+                entity.Property(x => x.Title).HasColumnName("title");
+                entity.Property(x => x.Region).HasColumnName("region");
+                entity.Property(x => x.Language).HasColumnName("language");
+                entity.Property(x => x.Attributes).HasColumnName("attributes");
+                entity.Property(x => x.IsOriginalTitle).HasColumnName("is_original_title");
 
                 //Sets Foreign Keys
-                entity.HasOne(x => x.titles).WithMany(d => d.TitleAlias)
-                    .HasForeignKey(x => x.title_id);
+                entity.HasOne(x => x.Titles).WithMany(d => d.TitleAlias)
+                    .HasForeignKey(x => x.TitleId);
             });
 
             //Genres
@@ -111,11 +111,11 @@ namespace IMDBDataService
                 entity.ToTable("genres");
 
                 //Sets Primary Key
-                entity.HasKey(x => x.genre_id).HasName("pk_genres");
+                entity.HasKey(x => x.GenreId).HasName("pk_genres");
 
                 //Sets properties
-                entity.Property(x => x.genre_id).HasColumnName("genre_id");
-                entity.Property(x => x.genre).HasColumnName("genre");
+                entity.Property(x => x.GenreId).HasColumnName("genre_id");
+                entity.Property(x => x.Genre).HasColumnName("genre");
             });
 
             //TitleGenres
@@ -125,17 +125,17 @@ namespace IMDBDataService
                 entity.ToTable("titlegenres");
 
                 //Sets Primary Key
-                entity.HasKey(x => x.title_id).HasName("title_id");
+                entity.HasKey(x => x.TitleId).HasName("title_id");
 
                 //Sets properties
-                entity.Property(x => x.title_id).HasColumnName("title_id");
-                entity.Property(x => x.genre_id).HasColumnName("genre_id");
+                entity.Property(x => x.TitleId).HasColumnName("title_id");
+                entity.Property(x => x.GenreId).HasColumnName("genre_id");
 
                 //Sets Foreign Keys
-                entity.HasOne(x => x.title).WithMany(d => d.TitleGenre)
-                    .HasForeignKey(x => x.title_id);
-                entity.HasOne(x => x.genre).WithMany(d => d.TitleGenres)
-                    .HasForeignKey(x => x.genre_id);
+                entity.HasOne(x => x.Title).WithMany(d => d.TitleGenre)
+                    .HasForeignKey(x => x.TitleId);
+                entity.HasOne(x => x.Genre).WithMany(d => d.TitleGenres)
+                    .HasForeignKey(x => x.GenreId);
             });
 
             //Formats
@@ -145,11 +145,11 @@ namespace IMDBDataService
                 entity.ToTable("formats");
 
                 //Sets Primary Key
-                entity.HasKey(x => x.format_id).HasName("pk_formats");
+                entity.HasKey(x => x.FormatId).HasName("pk_formats");
 
                 //Sets properties
-                entity.Property(x => x.format_id).HasColumnName("format_id");
-                entity.Property(x => x.format).HasColumnName("format");
+                entity.Property(x => x.FormatId).HasColumnName("format_id");
+                entity.Property(x => x.Format).HasColumnName("format");
             });
 
             //TitleFormats
@@ -159,18 +159,18 @@ namespace IMDBDataService
                 entity.ToTable("titleformats");
 
                 //Sets Primary Key -> Composite
-                entity.HasKey(x => new { x.title_id, x.ordering });
+                entity.HasKey(x => new { title_id = x.TitleId, ordering = x.Ordering });
 
                 //Sets properties
-                entity.Property(x => x.title_id).HasColumnName("title_id");
-                entity.Property(x => x.ordering).HasColumnName("ordering");
-                entity.Property(x => x.format_id).HasColumnName("format_id");
+                entity.Property(x => x.TitleId).HasColumnName("title_id");
+                entity.Property(x => x.Ordering).HasColumnName("ordering");
+                entity.Property(x => x.FormatId).HasColumnName("format_id");
 
                 //Sets Foreign Keys
-                entity.HasOne(x => x.titleAlias).WithMany(d => d.TitleFormat)
-                    .HasForeignKey(x => new { x.title_id, x.ordering });
-                entity.HasOne(x => x.format).WithMany(d => d.TitleFormats)
-                    .HasForeignKey(x => x.format_id);
+                entity.HasOne(x => x.TitleAlias).WithMany(d => d.TitleFormat)
+                    .HasForeignKey(x => new { title_id = x.TitleId, ordering = x.Ordering });
+                entity.HasOne(x => x.Format).WithMany(d => d.TitleFormats)
+                    .HasForeignKey(x => x.FormatId);
             });
 
             //CastInfo
@@ -180,13 +180,13 @@ namespace IMDBDataService
                 entity.ToTable("castinfo");
 
                 //Sets Primary Key
-                entity.HasKey(x => x.cast_id).HasName("cast_id");
+                entity.HasKey(x => x.CastId).HasName("cast_id");
 
                 //Sets properties
-                entity.Property(x => x.cast_id).HasColumnName("cast_id");
-                entity.Property(x => x.name).HasColumnName("name");
-                entity.Property(x => x.birth_year).HasColumnName("birth_year").ToString();
-                entity.Property(x => x.death_year).HasColumnName("death_year").ToString();
+                entity.Property(x => x.CastId).HasColumnName("cast_id");
+                entity.Property(x => x.Name).HasColumnName("name");
+                entity.Property(x => x.BirthYear).HasColumnName("birth_year");
+                entity.Property(x => x.DeathYear).HasColumnName("death_year");
             });
 
             //CastProfession
@@ -196,14 +196,14 @@ namespace IMDBDataService
                 entity.ToTable("castprofession");
 
                 //Sets Primary Key
-                entity.HasKey(x => x.cast_id).HasName("cast_id");
+                entity.HasKey(x => x.CastId).HasName("cast_id");
 
                 //Sets properties
-                entity.Property(x => x.cast_id).HasColumnName("cast_id");
-                entity.Property(x => x.profession).HasColumnName("profession");
+                entity.Property(x => x.CastId).HasColumnName("cast_id");
+                entity.Property(x => x.Profession).HasColumnName("profession");
 
                 //Sets Foreign Keys
-                entity.HasOne(x => x.castInfo).WithMany(d => d.CastProfession).HasForeignKey(x => x.cast_id);
+                entity.HasOne(x => x.CastInfo).WithMany(d => d.CastProfession).HasForeignKey(x => x.CastId);
             });
 
             //CastKnownFor
@@ -213,14 +213,14 @@ namespace IMDBDataService
                 entity.ToTable("castknownfor");
 
                 //Sets Primary Key
-                entity.HasKey(x => x.cast_id).HasName("cast_id");
+                entity.HasKey(x => new {title_id = x.CastId, ordering = x.KnownFor});
 
                 //Sets properties
-                entity.Property(x => x.cast_id).HasColumnName("cast_id");
-                entity.Property(x => x.known_for).HasColumnName("known_for");
+                entity.Property(x => x.CastId).HasColumnName("cast_id");
+                entity.Property(x => x.KnownFor).HasColumnName("known_for_title_id");
 
                 //Sets Foreign Keys
-                entity.HasOne(x => x.castInfo).WithMany(d => d.CastKnownFor).HasForeignKey(x => x.cast_id);
+                entity.HasOne(x => x.CastInfo).WithMany(d => d.CastKnownFor).HasForeignKey(x => x.CastId);
             });
 
             //Casts
@@ -230,18 +230,19 @@ namespace IMDBDataService
                 entity.ToTable("casts");
 
                 //Sets Primary Key -> Composite
-                entity.HasKey(x => new { x.title_id, x.ordering });
+                entity.HasKey(x => new { title_id = x.TitleId, ordering = x.Ordering });
 
                 //Sets properties
-                entity.Property(x => x.title_id).HasColumnName("title_id");
-                entity.Property(x => x.ordering).HasColumnName("ordering");
-                entity.Property(x => x.category).HasColumnName("category");
-                entity.Property(x => x.job).HasColumnName("job");
-                entity.Property(x => x.char_name).HasColumnName("char_name");
+                entity.Property(x => x.TitleId).HasColumnName("title_id");
+                entity.Property(x => x.CastId).HasColumnName("cast_id");
+                entity.Property(x => x.Ordering).HasColumnName("ordering");
+                entity.Property(x => x.Category).HasColumnName("category");
+                entity.Property(x => x.Job).HasColumnName("job");
+                entity.Property(x => x.CharName).HasColumnName("char_name");
 
                 //Sets Foreign Keys
-                entity.HasOne(x => x.title).WithMany(d => d.Casts).HasForeignKey(x => x.title_id);
-                entity.HasOne(x => x.castInfo).WithMany(d => d.Casts).HasForeignKey(x => x.cast_id);
+                entity.HasOne(x => x.Title).WithMany(d => d.Casts).HasForeignKey(x => x.TitleId);
+                entity.HasOne(x => x.CastInfo).WithMany(d => d.Casts).HasForeignKey(x => x.CastId);
             });
 
             //Episodes
@@ -251,17 +252,17 @@ namespace IMDBDataService
                 entity.ToTable("episodes");
 
                 //Sets Primary Key -> Composite
-                entity.HasKey(x => new { x.episode_id, x.series_id });
+                entity.HasKey(x => new { episode_id = x.EpisodeId, series_id = x.SeriesId });
 
                 //Sets properties
-                entity.Property(x => x.episode_id).HasColumnName("episode_id");
-                entity.Property(x => x.series_id).HasColumnName("series_id");
-                entity.Property(x => x.season_num).HasColumnName("season_num");
-                entity.Property(x => x.episode_num).HasColumnName("episode_num");
+                entity.Property(x => x.EpisodeId).HasColumnName("episode_id");
+                entity.Property(x => x.SeriesId).HasColumnName("series_id");
+                entity.Property(x => x.SeasonNum).HasColumnName("season_num");
+                entity.Property(x => x.EpisodeNum).HasColumnName("episode_num");
 
                 //Sets Foreign Keys
-                entity.HasOne(x => x.episode).WithMany(d => d.Episodes).HasForeignKey(x => x.episode_id);
-                entity.HasOne(x => x.series).WithMany(d => d.Seasons).HasForeignKey(x => x.series_id);
+                entity.HasOne(x => x.Episode).WithMany(d => d.Episodes).HasForeignKey(x => x.EpisodeId);
+                entity.HasOne(x => x.Series).WithMany(d => d.Seasons).HasForeignKey(x => x.SeriesId);
             });
 
             //Users
@@ -271,19 +272,19 @@ namespace IMDBDataService
                 entity.ToTable("users");
 
                 //Sets Primary Key
-                entity.HasKey(x => x.user_id).HasName("user_id");
+                entity.HasKey(x => x.UserId).HasName("user_id");
 
                 //Sets properties
-                entity.Property(x => x.user_id).HasColumnName("user_id");
-                entity.Property(x => x.user_name).HasColumnName("user_name");
-                entity.Property(x => x.date_of_birth).HasColumnName("date_of_birth").HasColumnType("date");
-                entity.Property(x => x.derived_age).HasColumnName("derived_age");
-                entity.Property(x => x.nickname).HasColumnName("nickname");
-                entity.Property(x => x.account_creation).HasColumnName("account_creation");
-                entity.Property(x => x.last_access).HasColumnName("last_access");
-                entity.Property(x => x.email).HasColumnName("email");
-                entity.Property(x => x.user_pass).HasColumnName("user_password");
-                entity.Property(x => x.salt).HasColumnName("salt");
+                entity.Property(x => x.UserId).HasColumnName("user_id");
+                entity.Property(x => x.Name).HasColumnName("user_name");
+                entity.Property(x => x.DateOfBirth).HasColumnName("date_of_birth").HasColumnType("date");
+                entity.Property(x => x.Age).HasColumnName("derived_age");
+                entity.Property(x => x.Nickname).HasColumnName("nickname");
+                entity.Property(x => x.AccountCreation).HasColumnName("account_creation");
+                entity.Property(x => x.LastAccess).HasColumnName("last_access");
+                entity.Property(x => x.Email).HasColumnName("email");
+                entity.Property(x => x.Password).HasColumnName("user_password");
+                entity.Property(x => x.Salt).HasColumnName("salt");
             });
 
             //Bookmarks
@@ -293,16 +294,16 @@ namespace IMDBDataService
                 entity.ToTable("bookmarks");
 
                 //Sets Primary Key -> Composite
-                entity.HasKey(x => new { x.user_id, x.type_id });
+                entity.HasKey(x => new { user_id = x.UserId, type_id = x.TypeId });
 
                 //Sets properties
-                entity.Property(x => x.user_id).HasColumnName("user_id");
-                entity.Property(x => x.bookmark_type).HasColumnName("bookmark_type");
-                entity.Property(x => x.type_id).HasColumnName("type_id");
+                entity.Property(x => x.UserId).HasColumnName("user_id");
+                entity.Property(x => x.BookmarkType).HasColumnName("bookmark_type");
+                entity.Property(x => x.TypeId).HasColumnName("type_id");
 
                 //Sets Foreign Keys
-                entity.HasOne(x => x.User).WithMany(d => d.Bookmarks).HasForeignKey(x => x.user_id);
-                entity.HasOne(x => x.Title).WithMany(d => d.Bookmarks).HasForeignKey(x => x.type_id);
+                entity.HasOne(x => x.User).WithMany(d => d.Bookmarks).HasForeignKey(x => x.UserId);
+                entity.HasOne(x => x.Title).WithMany(d => d.Bookmarks).HasForeignKey(x => x.TypeId);
             });
 
             //SpecialRoles
@@ -312,14 +313,14 @@ namespace IMDBDataService
                 entity.ToTable("specialroles");
 
                 //Sets Primary Key
-                entity.HasKey(x => x.user_id).HasName("user_id");
+                entity.HasKey(x => x.UserId).HasName("user_id");
 
                 //Sets properties
-                entity.Property(x => x.user_id).HasColumnName("user_id");
-                entity.Property(x => x.role_type).HasColumnName("role_type");
+                entity.Property(x => x.UserId).HasColumnName("user_id");
+                entity.Property(x => x.RoleType).HasColumnName("role_type");
 
                 //Sets Foreign Keys
-                entity.HasOne(x => x.User).WithMany(d => d.SpecialRoles).HasForeignKey(x => x.user_id);
+                entity.HasOne(x => x.User).WithMany(d => d.SpecialRoles).HasForeignKey(x => x.UserId);
             });
 
             //UserRating
@@ -329,16 +330,16 @@ namespace IMDBDataService
                 entity.ToTable("userrating");
 
                 //Sets Primary Key -> Composite
-                entity.HasKey(x => new { x.user_id, x.title_id });
+                entity.HasKey(x => new { user_id = x.UserId, title_id = x.TitleId });
 
                 //Sets properties
-                entity.Property(x => x.user_id).HasColumnName("user_id");
-                entity.Property(x => x.title_id).HasColumnName("title_id");
-                entity.Property(x => x.score).HasColumnName("score");
+                entity.Property(x => x.UserId).HasColumnName("user_id");
+                entity.Property(x => x.TitleId).HasColumnName("title_id");
+                entity.Property(x => x.Score).HasColumnName("score");
 
                 //Sets Foreign Keys
-                entity.HasOne(x => x.User).WithMany(d => d.UserRating).HasForeignKey(x => x.user_id);
-                entity.HasOne(x => x.Title).WithMany(d => d.UserRating).HasForeignKey(x => x.title_id);
+                entity.HasOne(x => x.User).WithMany(d => d.UserRating).HasForeignKey(x => x.UserId);
+                entity.HasOne(x => x.Title).WithMany(d => d.UserRating).HasForeignKey(x => x.TitleId);
             });
 
             //SearchHistory
@@ -348,7 +349,7 @@ namespace IMDBDataService
                 entity.ToTable("searchhistory");
 
                 //Sets Primary Key -> Composite
-                entity.HasKey(x => new { x.UserId, x.Ordering});
+                entity.HasKey(x => new { x.UserId, x.Ordering });
 
                 //Sets properties
                 entity.Property(x => x.UserId).HasColumnName("user_id");
@@ -367,18 +368,59 @@ namespace IMDBDataService
                 entity.ToTable("comments");
 
                 //Sets Primary Key
-                entity.HasKey(x => x.comment_id).HasName("comment_id");
+                entity.HasKey(x => x.CommentId).HasName("comment_id");
 
                 //Sets properties
-                entity.Property(x => x.comment_id).HasColumnName("comment_id");
-                entity.Property(x => x.comment_time).HasColumnName("comment_time").HasColumnType("date");
-                entity.Property(x => x.user_id).HasColumnName("user_id");
-                entity.Property(x => x.title_id).HasColumnName("title_id");
-                entity.Property(x => x.comment).HasColumnName("comment_string");
+                entity.Property(x => x.CommentId).HasColumnName("comment_id");
+                entity.Property(x => x.CommentTime).HasColumnName("comment_time").HasColumnType("date");
+                entity.Property(x => x.UserId).HasColumnName("user_id");
+                entity.Property(x => x.TitleId).HasColumnName("title_id");
+                entity.Property(x => x.Comment).HasColumnName("comment_string");
+                entity.Property(x => x.IsEdited).HasColumnName("edited");
+                entity.Property(x => x.ParentCommentId).HasColumnName("parent_comment_id");
 
                 //Sets Foreign Keys
-                entity.HasOne(x => x.User).WithMany(d => d.Comments).HasForeignKey(x => x.user_id);
-                entity.HasOne(x => x.Title).WithMany(d => d.Comments).HasForeignKey(x => x.title_id);
+                entity.HasOne(x => x.User).WithMany(d => d.Comments).HasForeignKey(x => x.UserId);
+                entity.HasOne(x => x.Title).WithMany(d => d.Comments).HasForeignKey(x => x.TitleId);
+                entity.HasOne(x => x.ParentComment).WithMany(d => d.ChildComments)
+                    .HasForeignKey(x => x.ParentCommentId);
+            });
+
+            //FlaggedComments
+            modelBuilder.Entity<FlaggedComment>(entity =>
+            {
+
+                //Points to Database Table
+                entity.ToTable("flaggedcomments");
+
+                //Sets Primary Key
+                entity.HasKey(x => new { x.CommentId, UserId = x.FlaggingUser });
+
+                //Sets properties
+                entity.Property(x => x.CommentId).HasColumnName("comment_id");
+                entity.Property(x => x.FlaggingUser).HasColumnName("flagging_user");
+
+                //Sets foreign Keys
+                entity.HasOne(x => x.User).WithMany(d => d.FlaggedComments).HasForeignKey(x => x.FlaggingUser);
+                entity.HasOne(x => x.Comment).WithMany(d => d.FlaggedComments).HasForeignKey(x => x.CommentId);
+            });
+
+            //NameRatings
+            modelBuilder.Entity<NameRating>(entity =>
+            {
+                //Points to Database Table
+                entity.ToTable("nameratings");
+
+                //Sets Primary key
+                entity.HasKey(x => x.CastId).HasName("cast_id");
+
+                //Sets Properties
+                entity.Property(x => x.CastId).HasColumnName("cast_id");
+                entity.Property(x => x.Score).HasColumnName("score");
+
+                //Sets Foreign Keys
+                entity.HasOne(x => x.CastInfo).WithMany(d => d.NameRating).HasForeignKey(x => x.CastId);
+
             });
         }
     }

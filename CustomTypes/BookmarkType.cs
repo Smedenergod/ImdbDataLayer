@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace IMDBDataService.CustomTypes
+﻿namespace IMDBDataService.CustomTypes
 {
     public enum BookmarkType
     {

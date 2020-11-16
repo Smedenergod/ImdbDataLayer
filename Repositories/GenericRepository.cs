@@ -1,59 +1,80 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using IMDBDataService.Filters;
 using Microsoft.EntityFrameworkCore;
 
 namespace IMDBDataService.Repositories
 {
     public class GenericRepository <T> : IGenericRepository<T> where T : class
     {
-        public readonly ImdbContext context;
+        public readonly ImdbContext Context;
 
         public GenericRepository(ImdbContext context)
         {
-            this.context = context;
+            this.Context = context;
         }
+
+        public async Task<int> CountAll()
+        {
+           return await Context.Set<T>().CountAsync();
+        }
+
         public async Task<T> ReadById(object id)
         {
-            return await context.Set<T>().FindAsync(id);
+            return await Context.Set<T>().FindAsync(id);
         }
-        /*
-        public async Task<T> Read(string id)
+        public async Task<T> ReadById(object[] id)
         {
-            return await context.Set<T>().FindAsync(id);
+            return await Context.Set<T>().FindAsync(id);
         }
-        */
-        public async Task<List<T>> ReadAll()
+        public async Task<List<T>> ReadAll(PaginationFilter paginationFilter = null)
         {
-            return await context.Set<T>().ToListAsync();
+            if (paginationFilter != null)
+            {
+                return await Context.Set<T>().Skip((paginationFilter.PageNumber - 1) * paginationFilter.PageSize)
+                    .Take(paginationFilter.PageSize)
+                    .ToListAsync();
+            }
+
+            return await Context.Set<T>().ToListAsync();
         }
+
+        //public async Task<List<T>> WhereByUserId(int? id, Func<T, int> property, PaginationFilter paginationFilter = null)
+        //{
+        //    if (paginationFilter != null)
+        //    {
+        //        return await Context.Set<T>().Skip((paginationFilter.PageNumber - 1) * paginationFilter.PageSize)
+        //            .Take(paginationFilter.PageSize)
+        //            .Where(x => property(x) == id)
+        //            .ToListAsync();
+        //    }
+        //    return await Context.Set<T>().Where(x => property(x) == id).ToListAsync();
+        //}
 
         public async Task<T> Delete(T entity)
         {
-            context.Set<T>().Remove(entity);
-            await context.SaveChangesAsync();
+            Context.Set<T>().Remove(entity);
+            await Context.SaveChangesAsync();
             return entity;
         }
 
         public async Task<T> Update(T entity)
         {
-            context.Set<T>().Update(entity);
-            await context.SaveChangesAsync();
-            return entity;
+            var updatedEntity = Context.Set<T>().Update(entity).Entity;
+            await Context.SaveChangesAsync();
+            return updatedEntity;
         }
 
         public async Task<T> Create(T entity)
         {
-            await context.Set<T>().AddAsync(entity);
-            await context.SaveChangesAsync();
-            return entity;
+            var newEntity = Context.Set<T>().AddAsync(entity).Result.Entity;
+            await Context.SaveChangesAsync();
+            return newEntity;
         }
-
         public async void Save()
         {
-            await context.SaveChangesAsync();
+            await Context.SaveChangesAsync();
         }
-
     }
 }

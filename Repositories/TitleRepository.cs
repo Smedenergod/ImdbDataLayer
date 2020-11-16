@@ -1,7 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using IMDBDataService.Objects;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using IMDBDataService.DMO;
+using Microsoft.EntityFrameworkCore;
 
 namespace IMDBDataService.Repositories
 {
@@ -10,6 +10,16 @@ namespace IMDBDataService.Repositories
         public TitleRepository(ImdbContext context) : base(context)
         {
 
+        }
+
+        public async Task<List<Titles>> SearchForTitle(int? num, string searchString)
+        {
+            return await Context.Titles.FromSqlRaw("SELECT * FROM best_match_search({0}, {1})", num, searchString).ToListAsync();
+        }
+
+        public async Task<List<Titles>> GetPopularTitles(int? num, string type)
+        {
+            return await Context.Titles.FromSqlRaw("SELECT * FROM popular_titles({0}, {1})", num, type).ToListAsync();
         }
     }
 }

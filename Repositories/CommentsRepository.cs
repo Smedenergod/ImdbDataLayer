@@ -1,23 +1,38 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using IMDBDataService.Objects;
+using IMDBDataService.DMO;
+using IMDBDataService.Filters;
 using Microsoft.EntityFrameworkCore;
 
 namespace IMDBDataService.Repositories
 {
-    class CommentsRepository : GenericRepository<Comments>
+    public class CommentsRepository : GenericRepository<Comments>
     {
         public CommentsRepository(ImdbContext context) : base(context)
         {
 
         }
 
-        public async Task<List<Comments>> WhereByUserId(int? id)
+        public async Task<List<Comments>> WhereByUserId(int? id, PaginationFilter filter = null)
         {
-            return await context.Set<Comments>().Where(comment => comment.user_id == id).ToListAsync();
+            if (filter != null)
+            {
+                return await Context.Set<Comments>().Skip((filter.PageNumber - 1) * filter.PageSize)
+                    .Take(filter.PageSize).Where(comments => comments.UserId == id).ToListAsync();
+            }
+            return await Context.Set<Comments>().Where(comments => comments.UserId == id).ToListAsync();
         }
+
+        public async Task<List<Comments>> WhereByTitleId(string id, PaginationFilter filter = null)
+        {
+            if (filter != null)
+            {
+                return await Context.Set<Comments>().Skip((filter.PageNumber - 1) * filter.PageSize)
+                    .Take(filter.PageSize).Where(comments => comments.TitleId == id).ToListAsync();
+            }
+            return await Context.Set<Comments>().Where(comments => comments.TitleId == id).ToListAsync();
+        }
+
     }
 }
